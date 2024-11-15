@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+  labels:
+    app: demo
+spec:
+  type: NodePort
+  ports:
+  - port: 80 #port para acesso de container
+    protocol: TCP
+    targetPort: 80 # porta que serviço runnin
+    nodePort: 30001  # Porta externa específica (dentro do intervalo permitido para NodePort 32622)
+  selector:
+    app: demo

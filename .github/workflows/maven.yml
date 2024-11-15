@@ -1,40 +1,60 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: SpringBoot - Build CI/CD Pipeline Using GitHub Action
+name: CI/CD Pipeline for Spring Boot
 
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    branches:
+      - main  # Executa o pipeline quando houver push na branch 'main'.
 
 jobs:
-  build:
-
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 17
+    # Configuração do repositório
+    - name: Checkout do código
+      uses: actions/checkout@v3
+
+    # Configuração do Java
+    - name: Configurar Java
       uses: actions/setup-java@v3
       with:
-        java-version: '17'
+        java-version: '17' # Altere para a versão que sua aplicação usa
         distribution: 'temurin'
-        cache: maven
-    - name: Build with Maven
-      run: mvn clean install
-    - name: Build & push Docker image
-      uses: mr-smithers-excellent/docker-build-push@v6
+
+    # Construir o projeto
+    - name: Build do projeto com Maven
+      run: mvn clean package -DskipTests
+
+    # Criar imagem Docker
+    - name: Configurar Docker
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login no Docker Registry
+      uses: docker/login-action@v2
       with:
-        image: neilfernandes/springboot-app-ci-cd
-        tags: latest
-        registry: docker.io
-        dockerfile: Dockerfile
+        registry: docker.io  # Substitua se estiver usando outro registry
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Criar e enviar imagem Docker
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:latest .
+        docker push ${{ secrets.DOCKER_USERNAME }}/spring-boot-app:latest
+
+    # Configurar kubectl
+    - name: Configurar kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    # Configurar kubeconfig
+    - name: Adicionar kubeconfig
+      run: |
+        echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+        export KUBECONFIG=kubeconfig
+
+    # Aplicar os manifests no Kubernetes
+    - name: Aplicar Deployment e Service
+      run: |
+        kubectl apply -f k8s/deployment.yml
+        kubectl apply -f k8s/service.yml
