@@ -1,5 +1,5 @@
 # Estágio de build
-FROM eclipse-temurin:21-jdk-alpine AS build
+FROM maven:3.9.5-eclipse-temurin-17 AS build
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY src /app/src
 RUN mvn clean package -DskipTests
 
 # Estágio final, utilizando apenas JRE
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:17-jdk-jammy
 
 WORKDIR /app
 
