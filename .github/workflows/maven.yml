@@ -23,7 +23,9 @@ jobs:
 
     # Construir o projeto
     - name: Build do projeto com Maven
-      run: mvn clean package -DskipTests
+      run: |
+        mvn dependency:go-offline -B
+        mvn clean package -DskipTests
 
     # Criar imagem Docker
     - name: Configurar Docker
